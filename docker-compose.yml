@@ -1,25 +1,54 @@
-version: '3'
+# Copyright by Intland Software, https://www.intland.com
+#
+# All rights reserved.
+#
+# Please note that if you change this docker file, we do not take any responsibility and we are not liable for
+# any damage caused through use of this image, be it indirect, special, incidental
+# or consequential damages (including but not limited to damages for loss of business, loss of profits, interruption or the like).
+
+
+version: '2.1'
+
 
 services:
-    mysql-server:
-        image: mysql:5.7
-        environment:
-            MYSQL_ROOT_PASSWORD: password 
-            MYSQL_DATABASE: logindb
+  retina-db:
+    image: intland/mysql:5.7.24
+    environment:
+      - MYSQL_USER=user
+      - MYSQL_PASSWORD=pass
+      - MYSQL_DATABASE=retina
+      - MYSQL_MAX_ALLOWED_PACKET=1024M
+      - MYSQL_INNODB_BUFFER_POOL_SIZE=1G
+      - MYSQL_INNODB_LOG_FILE_SIZE=256M
+      - MYSQL_INNODB_LOG_BUFFER_SIZE=256M
+    volumes:
+      - retina-db-data:/var/lib/mysql/data
 
-    loginapp:
-        build:
-            dockerfile: Dockerfile 
-            context: ./
-        environment: 
-            MSHOST: mysql-server
-            MSUSER: root
-            MSPASSWORD: password
-            MSDATABASE: logindb
-            SERVERPORT: 8888
-            WAIT_HOSTS: mysql-server:3306
-            WAIT_HOSTS_TIMEOUT: 90
-        ports:
-            - "8888:8888"
-        depends_on: 
-            - mysql-server
+
+  retina-app:
+    image: intland/codebeamer-x:4.1
+    ports:
+      - 8080:8080
+    environment:
+      - WAIT_HOSTS=container-mysql:3306
+      - WAIT_HOSTS_TIMEOUT=120
+      - CB_REDIRECT_TO=/x
+      - CB_CONTEXT_PATH=cb
+      - CB_database_JDBC_Username=user
+      - CB_database_JDBC_Password=pass
+      - CB_database_JDBC_Driver=com.mysql.jdbc.Driver
+      - CB_database_JDBC_ConnectionURL=jdbc:mysql://container-mysql:3306/retina?autoReconnect=true&zeroDateTimeBehavior=convertToNull&emulateLocators=true&characterEncoding=UTF-8&useSSL=false
+      - CB_MAC_ADDRESS=<<your mac-address>>
+    volumes:
+      - retina-app-repository-docs:/home/appuser/codebeamer/repository/docs
+      - retina-app-repository-search:/home/appuser/codebeamer/repository/search
+      - retina-app-logs:/home/appuser/codebeamer/logs
+    links:
+      - retina-db:container-mysql
+
+
+volumes:
+  retina-db-data:
+  retina-app-repository-docs:
+  retina-app-repository-search:
+  retina-app-logs:
